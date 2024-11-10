@@ -107,60 +107,45 @@ export class FTPUtility
 	// Assumes that oldSegment_ and newSegment_ have the same dimensions!
 	los (oldSegment_, newSegment_)
 	{
-		if (! oldSegment_ || oldSegment_.equals (newSegment_)) 
+		if (oldSegment_.equals(newSegment_))
 			return true;
-	
-		if (! newSegment_)
-			return false;
-	
-		if (oldSegment_.width !== newSegment_.width || oldSegment_.height !== newSegment_.height)
-		{
-			console.log ("FindThePath | Invalid LoS comparison between Points of mismatching dimension");
-			return false;
-		}
 
-		if (! oldSegment_.isValid || ! newSegment_.isValid)
-			return false;
+		const config = {
+			type: "sight",
+			mode: "any"
+		};
 
-		const ps1 = oldSegment_.pointSet;
-		const ps2 = newSegment_.pointSet;
-
-		// A token may take up multiple tiles, and it moves by translation from an old set to a new set. A movement is valid if, for each translation, the old tile has line of sight on the new tile and each tile in the new set has los on every other tile in the set.
-		for (let i = 0; i < oldSegment_.width * oldSegment_.height; ++i)
-		{
-			if (canvas.walls.checkCollision (new Ray({ x: ps1[i].cpx, y: ps1[i].cpy },
-								 { x: ps2[i].cpx, y: ps2[i].cpy })))
-				return false;
-	
-			const p = { x: ps2[i].cpx, y: ps2[i].cpy };
-
-			// If A has los on B then B has los on A, so we only need to check half of these
-			for (let j = i + 1; j < newSegment_.width * newSegment_.height; ++j)
-				if (canvas.walls.checkCollision (new Ray(p, { x: ps2[j].cpx, y: ps2[j].cpy})))
-					return false;
-		}
-
-		return true;
+		return !canvas.walls.checkCollision(
+			new Ray(oldSegment_.center, newSegment_.center),
+			config
+		);
 	}
 	
 	// Checks line of sight between the centers of two segments
 	// Returns true if los is not blocked by a wall
 	losCenter (startSegment_, endSegment_)
 	{
-		if (! startSegment_ || startSegment_.equals (endSegment_)) 
+		if (!startSegment_ || startSegment_.equals(endSegment_)) 
 			return true;
-	
-		if (! endSegment_)
+
+		if (!endSegment_)
 			return false;
-	
-		if (! startSegment_.isValid || ! endSegment_.isValid)
+
+		if (!startSegment_.isValid || !endSegment_.isValid)
 			return false;
 
 		const p1 = startSegment_.center;
 		const p2 = endSegment_.center;
 
-		return ! canvas.walls.checkCollision (new Ray({ x: p1.px, y: p1.py }, { x: p2.px, y: p2.py }),
-						      { blockMovement: false, blockSenses: true, mode: "any" });
+		const config = {
+			type: "sight",
+			mode: "any"
+		};
+
+		return !canvas.walls.checkCollision(
+			new Ray({ x: p1.px, y: p1.py }, { x: p2.px, y: p2.py }),
+			config
+		);
 	}
 
 	partialLOS (oldSegment_, newSegment_)
@@ -187,12 +172,12 @@ export class FTPUtility
 			return true;
 
 		// Calculate the angular distance to the destination grid space
-		const dTheta = cur.radialDistToSegment (segment_, this.tokenDoc.data.rotation, AngleTypes.DEG);
+		const dTheta = cur.radialDistToSegment (segment_, this.tokenDoc.rotation, AngleTypes.DEG);
 
 		if (dTheta)
 		{
 			// Rotate the token to face the direction it moves in
-			await this.tokenDoc.update ({ rotation: (this.tokenDoc.data.rotation + dTheta) % 360 }).then (
+			await this.tokenDoc.update ({ rotation: (this.tokenDoc.rotation + dTheta) % 360 }).then (
 			(resolve, reject) => { 
 				// Wait between rotating and moving
 				return new Promise (resolve => setTimeout (resolve, dTheta / 360 * rotateWait_));
